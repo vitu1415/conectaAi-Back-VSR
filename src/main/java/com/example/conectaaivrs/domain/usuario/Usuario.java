@@ -1,9 +1,9 @@
 package com.example.conectaaivrs.domain.usuario;
 
+import com.example.conectaaivrs.domain.interesse.Interesse;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
@@ -68,6 +68,14 @@ public class Usuario implements UserDetails {
 
     @Column(name = "ultimo_login")
     private LocalDateTime ultimoLogin;
+
+    @ManyToMany
+    @JoinTable(
+            name = "usuario_interesse",
+            joinColumns = @JoinColumn(name = "usuario_id"),
+            inverseJoinColumns = @JoinColumn(name = "interesse_id")
+    )
+    private List<Interesse> interesses;
 
     @PrePersist
     protected void onCreate() {

@@ -1,0 +1,58 @@
+INSERT INTO interesses (nome, categoria, icone) VALUES
+-- Esportes
+('Futebol', 'Esportes', '⚽'),
+('Vôlei', 'Esportes', '🏐'),
+('Basquete', 'Esportes', '🏀'),
+('Tênis', 'Esportes', '🎾'),
+('Corrida', 'Esportes', '🏃'),
+('Academia', 'Esportes', '💪'),
+('Yoga', 'Esportes', '🧘'),
+('Surf', 'Esportes', '🏄'),
+('Skate', 'Esportes', '🛹'),
+('Ciclismo', 'Esportes', '🚴'),
+-- Música
+('Rock', 'Música', '🎸'),
+('Pop', 'Música', '🎤'),
+('Funk', 'Música', '🕺'),
+('Sertanejo', 'Música', '🤠'),
+('Eletrônica', 'Música', '🎧'),
+('Hip Hop', 'Música', '🎙️'),
+('MPB', 'Música', '🎵'),
+('Jazz', 'Música', '🎷'),
+('Clássica', 'Música', '🎻'),
+('Reggae', 'Música', '🌴'),
+-- Tecnologia
+('Programação', 'Tecnologia', '💻'),
+('Inteligência Artificial', 'Tecnologia', '🤖'),
+('Games', 'Tecnologia', '🎮'),
+('Startup', 'Tecnologia', '🚀'),
+('Design', 'Tecnologia', '🎨'),
+('Dados', 'Tecnologia', '📊'),
+('Cibersegurança', 'Tecnologia', '🔒'),
+-- Arte & Cultura
+('Cinema', 'Arte & Cultura', '🎬'),
+('Fotografia', 'Arte & Cultura', '📷'),
+('Teatro', 'Arte & Cultura', '🎭'),
+('Dança', 'Arte & Cultura', '💃'),
+('Pintura', 'Arte & Cultura', '🖌️'),
+('Literatura', 'Arte & Cultura', '📚'),
+('Museus', 'Arte & Cultura', '🏛️'),
+-- Gastronomia
+('Culinária', 'Gastronomia', '🍳'),
+('Vinhos', 'Gastronomia', '🍷'),
+('Cerveja Artesanal', 'Gastronomia', '🍺'),
+('Café', 'Gastronomia', '☕'),
+('Gastronomia Molecular', 'Gastronomia', '🔬'),
+-- Lazer
+('Viagem', 'Lazer', '✈️'),
+('Trilha', 'Lazer', '🥾'),
+('Praia', 'Lazer', '🏖️'),
+('Campo', 'Lazer', '🌿'),
+('Pesca', 'Lazer', '🎣'),
+('Acampamento', 'Lazer', '⛺'),
+-- Educação
+('Cursos', 'Educação', '📖'),
+('Workshops', 'Educação', '🛠️'),
+('Palestras', 'Educação', '🎤'),
+('Idiomas', 'Educação', '🗣️')
+ON CONFLICT (nome) DO NOTHING;

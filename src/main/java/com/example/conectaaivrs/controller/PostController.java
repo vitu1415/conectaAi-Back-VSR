@@ -23,19 +23,21 @@ public class PostController {
     @Autowired
     private PostService postService;
 
-    @GetMapping("/post/{usuarioId}")
+    @GetMapping("/feed/{usuarioId}")
     public ResponseEntity<List<FeedEventoResponse>> feed(@PathVariable UUID usuarioId) {
         return ResponseEntity.ok(postService.feed(usuarioId));
     }
 
-    @GetMapping("/eventos/{eventoId}/post")
+    @GetMapping("post/eventos/{eventoId}")
     public ResponseEntity<List<PostResponse>> listarPorEvento(@PathVariable UUID eventoId) {
         return ResponseEntity.ok(postService.listarPorEvento(eventoId));
     }
 
-    @GetMapping("/usuarios/{usuarioId}/posts")
-    public ResponseEntity<List<PostResponse>> listarPorUsuario(@PathVariable UUID usuarioId) {
-        return ResponseEntity.ok(postService.listarPorUsuario(usuarioId));
+    @GetMapping("post/usuarios/{usuarioId}")
+    public ResponseEntity<List<PostResponse>> listarPorUsuario(
+            @PathVariable UUID usuarioId,
+            @AuthenticationPrincipal Usuario usuario) {
+        return ResponseEntity.ok(postService.listarPorUsuario(usuarioId, usuario.getId()));
     }
 
     @PostMapping("/post")
@@ -47,8 +49,10 @@ public class PostController {
     }
 
     @GetMapping("/post/{id}")
-    public ResponseEntity<PostResponse> buscarPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(postService.buscarPorId(id));
+    public ResponseEntity<PostResponse> buscarPorId(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Usuario usuario) {
+        return ResponseEntity.ok(postService.buscarPorId(id, usuario.getId()));
     }
 
     @PutMapping("/post/{id}")
@@ -65,5 +69,19 @@ public class PostController {
             @PathVariable UUID id) {
         postService.deletar(usuario, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/feed/{id}/curtir")
+    public ResponseEntity<PostResponse> curtir(
+            @AuthenticationPrincipal Usuario usuario,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(postService.curtir(usuario, id));
+    }
+
+    @DeleteMapping("/feed/{id}/curtir")
+    public ResponseEntity<PostResponse> descurtir(
+            @AuthenticationPrincipal Usuario usuario,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(postService.descurtir(usuario, id));
     }
 }

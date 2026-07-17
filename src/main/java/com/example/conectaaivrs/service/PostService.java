@@ -1,5 +1,7 @@
 package com.example.conectaaivrs.service;
 
+import com.example.conectaaivrs.domain.curtida.Curtida;
+import com.example.conectaaivrs.domain.curtida.CurtidaRepository;
 import com.example.conectaaivrs.domain.evento.dto.EventoResponse;
 import com.example.conectaaivrs.domain.post.dto.FeedEventoResponse;
 import com.example.conectaaivrs.domain.post.dto.PostRequest;
@@ -37,6 +39,9 @@ public class PostService {
     @Autowired
     private ParticipanteEventoRepository participanteRepository;
 
+    @Autowired
+    private CurtidaRepository curtidaRepository;
+
     public List<FeedEventoResponse> feed(UUID usuarioLogado) {
         List<Post> posts = postRepository.findFeedByUsuarioId(usuarioLogado);
 
@@ -44,7 +49,14 @@ public class PostService {
                 .collect(Collectors.groupingBy(
                         p -> p.getEvento().getId(),
                         LinkedHashMap::new,
-                        Collectors.mapping(PostResponse::fromEntity, Collectors.toList())
+                        Collectors.mapping(
+                                p -> PostResponse.fromEntity(
+                                        p,
+                                        curtidaRepository.countByPostId(p.getId()),
+                                        curtidaRepository.existsByPostIdAndUsuarioId(p.getId(), usuarioLogado)
+                                ),
+                                Collectors.toList()
+                        )
                 ));
 
         return postsPorEvento.entrySet().stream()
@@ -67,24 +79,36 @@ public class PostService {
         }
         return postRepository.findAllByEventoIdOrderByCriadoEmDesc(eventoId)
                 .stream()
-                .map(PostResponse::fromEntity)
+                .map(p -> PostResponse.fromEntity(
+                        p,
+                        curtidaRepository.countByPostId(p.getId()),
+                        false
+                ))
                 .toList();
     }
 
-    public List<PostResponse> listarPorUsuario(UUID usuarioId) {
+    public List<PostResponse> listarPorUsuario(UUID usuarioId, UUID usuarioLogadoId) {
         if (!usuarioRepository.existsById(usuarioId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado");
         }
         return postRepository.findAllByAutorIdOrderByCriadoEmDesc(usuarioId)
                 .stream()
-                .map(PostResponse::fromEntity)
+                .map(p -> PostResponse.fromEntity(
+                        p,
+                        curtidaRepository.countByPostId(p.getId()),
+                        curtidaRepository.existsByPostIdAndUsuarioId(p.getId(), usuarioLogadoId)
+                ))
                 .toList();
     }
 
-    public PostResponse buscarPorId(UUID postId) {
+    public PostResponse buscarPorId(UUID postId, UUID usuarioLogadoId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post não encontrado"));
-        return PostResponse.fromEntity(post);
+        return PostResponse.fromEntity(
+                post,
+                curtidaRepository.countByPostId(post.getId()),
+                curtidaRepository.existsByPostIdAndUsuarioId(post.getId(), usuarioLogadoId)
+        );
     }
 
     public PostResponse criar(Usuario autor, PostRequest request) {
@@ -107,7 +131,7 @@ public class PostService {
                 .build();
 
         postRepository.save(post);
-        return PostResponse.fromEntity(post);
+        return PostResponse.fromEntity(post, 0, false);
     }
 
     public PostResponse atualizar(Usuario usuarioLogado, UUID postId, PostRequest request) {
@@ -124,7 +148,11 @@ public class PostService {
         if (request.visibilidade() != null) post.setVisibilidade(request.visibilidade());
 
         postRepository.save(post);
-        return PostResponse.fromEntity(post);
+        return PostResponse.fromEntity(
+                post,
+                curtidaRepository.countByPostId(post.getId()),
+                curtidaRepository.existsByPostIdAndUsuarioId(post.getId(), usuarioLogado.getId())
+        );
     }
 
     public void deletar(Usuario usuarioLogado, UUID postId) {
@@ -136,5 +164,48 @@ public class PostService {
         }
 
         postRepository.delete(post);
+    }
+
+    public PostResponse curtir(Usuario usuario, UUID postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post não encontrado"));
+
+        boolean isParticipante = participanteRepository
+                .existsByEventoIdAndUsuarioId(post.getEvento().getId(), usuario.getId());
+        if (!isParticipante) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas participantes do evento podem curtir posts");
+        }
+
+        if (curtidaRepository.existsByPostIdAndUsuarioId(postId, usuario.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Você já curtiu este post");
+        }
+
+        Curtida curtida = Curtida.builder()
+                .post(post)
+                .usuario(usuario)
+                .build();
+        curtidaRepository.save(curtida);
+
+        return PostResponse.fromEntity(
+                post,
+                curtidaRepository.countByPostId(postId),
+                true
+        );
+    }
+
+    public PostResponse descurtir(Usuario usuario, UUID postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post não encontrado"));
+
+        Curtida curtida = curtidaRepository.findByPostIdAndUsuarioId(postId, usuario.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Você não curtiu este post"));
+
+        curtidaRepository.delete(curtida);
+
+        return PostResponse.fromEntity(
+                post,
+                curtidaRepository.countByPostId(postId),
+                false
+        );
     }
 }

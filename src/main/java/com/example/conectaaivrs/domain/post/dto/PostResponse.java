@@ -17,10 +17,12 @@ public record PostResponse(
         TipoPost tipo,
         VisibilidadePost visibilidade,
         Boolean ativo,
+        int curtidasCount,
+        boolean curtido,
         LocalDateTime criadoEm,
         LocalDateTime atualizadoEm
 ) {
-    public static PostResponse fromEntity(Post post) {
+    public static PostResponse fromEntity(Post post, int curtidasCount, boolean curtido) {
         return new PostResponse(
                 post.getId(),
                 post.getEvento().getId(),
@@ -30,6 +32,8 @@ public record PostResponse(
                 post.getTipo(),
                 post.getVisibilidade(),
                 post.getAtivo(),
+                curtidasCount,
+                curtido,
                 post.getCriadoEm(),
                 post.getAtualizadoEm()
         );

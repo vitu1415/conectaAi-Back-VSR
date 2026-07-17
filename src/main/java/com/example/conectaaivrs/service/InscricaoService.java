@@ -1,7 +1,7 @@
 package com.example.conectaaivrs.service;
 
-import com.example.conectaaivrs.domain.auth.dto.MeuEventoResponse;
-import com.example.conectaaivrs.domain.auth.dto.ParticipanteResponse;
+import com.example.conectaaivrs.domain.inscricao.dto.MeuEventoResponse;
+import com.example.conectaaivrs.domain.inscricao.dto.ParticipanteResponse;
 import com.example.conectaaivrs.domain.evento.*;
 import com.example.conectaaivrs.domain.inscricao.ParticipanteEvento;
 import com.example.conectaaivrs.domain.inscricao.ParticipanteEventoRepository;

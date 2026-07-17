@@ -1,7 +1,7 @@
 package com.example.conectaaivrs.service;
 
-import com.example.conectaaivrs.domain.auth.dto.EventoRequest;
-import com.example.conectaaivrs.domain.auth.dto.EventoResponse;
+import com.example.conectaaivrs.domain.evento.dto.EventoRequest;
+import com.example.conectaaivrs.domain.evento.dto.EventoResponse;
 import com.example.conectaaivrs.domain.evento.Evento;
 import com.example.conectaaivrs.domain.evento.EventoRepository;
 import com.example.conectaaivrs.domain.evento.EventoStatus;

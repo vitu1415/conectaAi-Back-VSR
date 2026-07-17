@@ -1,7 +1,7 @@
 package com.example.conectaaivrs.controller;
 
-import com.example.conectaaivrs.domain.auth.dto.ConexaoResponse;
-import com.example.conectaaivrs.domain.auth.dto.RelacionamentoResponse;
+import com.example.conectaaivrs.domain.conexao.dto.ConexaoResponse;
+import com.example.conectaaivrs.domain.conexao.dto.RelacionamentoResponse;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.service.ConexaoService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

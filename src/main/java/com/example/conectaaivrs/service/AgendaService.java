@@ -2,8 +2,8 @@ package com.example.conectaaivrs.service;
 
 import com.example.conectaaivrs.domain.agenda.Agenda;
 import com.example.conectaaivrs.domain.agenda.AgendaRepository;
-import com.example.conectaaivrs.domain.auth.dto.AgendaRequest;
-import com.example.conectaaivrs.domain.auth.dto.AgendaResponse;
+import com.example.conectaaivrs.domain.agenda.dto.AgendaRequest;
+import com.example.conectaaivrs.domain.agenda.dto.AgendaResponse;
 import com.example.conectaaivrs.domain.evento.Evento;
 import com.example.conectaaivrs.domain.evento.EventoRepository;
 import com.example.conectaaivrs.domain.usuario.Usuario;

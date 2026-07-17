@@ -2,6 +2,7 @@ package com.example.conectaaivrs.controller;
 
 import com.example.conectaaivrs.domain.auth.dto.*;
 import com.example.conectaaivrs.domain.usuario.Usuario;
+import com.example.conectaaivrs.domain.usuario.dto.UsuarioResponse;
 import com.example.conectaaivrs.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

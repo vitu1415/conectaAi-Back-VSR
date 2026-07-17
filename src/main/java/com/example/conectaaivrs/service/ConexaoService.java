@@ -1,7 +1,7 @@
 package com.example.conectaaivrs.service;
 
-import com.example.conectaaivrs.domain.auth.dto.ConexaoResponse;
-import com.example.conectaaivrs.domain.auth.dto.RelacionamentoResponse;
+import com.example.conectaaivrs.domain.conexao.dto.ConexaoResponse;
+import com.example.conectaaivrs.domain.conexao.dto.RelacionamentoResponse;
 import com.example.conectaaivrs.domain.conexao.Conexao;
 import com.example.conectaaivrs.domain.conexao.ConexaoRepository;
 import com.example.conectaaivrs.domain.conexao.ConexaoStatus;

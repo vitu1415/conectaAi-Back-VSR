@@ -1,10 +1,10 @@
 package com.example.conectaaivrs.controller;
 
-import com.example.conectaaivrs.domain.auth.dto.AtualizarFotoRequest;
-import com.example.conectaaivrs.domain.auth.dto.AtualizarUsuarioRequest;
-import com.example.conectaaivrs.domain.auth.dto.InteresseResponse;
-import com.example.conectaaivrs.domain.auth.dto.MeuEventoResponse;
-import com.example.conectaaivrs.domain.auth.dto.UsuarioResponse;
+import com.example.conectaaivrs.domain.inscricao.dto.MeuEventoResponse;
+import com.example.conectaaivrs.domain.interesse.dto.InteresseResponse;
+import com.example.conectaaivrs.domain.usuario.dto.AtualizarFotoRequest;
+import com.example.conectaaivrs.domain.usuario.dto.AtualizarUsuarioRequest;
+import com.example.conectaaivrs.domain.usuario.dto.UsuarioResponse;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.service.InscricaoService;
 import com.example.conectaaivrs.service.UsuarioService;

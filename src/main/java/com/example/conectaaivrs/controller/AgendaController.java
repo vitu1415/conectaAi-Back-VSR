@@ -1,7 +1,7 @@
 package com.example.conectaaivrs.controller;
 
-import com.example.conectaaivrs.domain.auth.dto.AgendaRequest;
-import com.example.conectaaivrs.domain.auth.dto.AgendaResponse;
+import com.example.conectaaivrs.domain.agenda.dto.AgendaRequest;
+import com.example.conectaaivrs.domain.agenda.dto.AgendaResponse;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.service.AgendaService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

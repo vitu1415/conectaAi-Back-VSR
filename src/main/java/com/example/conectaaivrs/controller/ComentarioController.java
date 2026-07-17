@@ -22,12 +22,12 @@ public class ComentarioController {
     @Autowired
     private ComentarioService comentarioService;
 
-    @GetMapping("/post/{id}/comentarios")
+    @GetMapping("/comentarios/post/{id}")
     public ResponseEntity<List<ComentarioResponse>> listar(@PathVariable UUID id) {
         return ResponseEntity.ok(comentarioService.listar(id));
     }
 
-    @PostMapping("/post/{id}/comentarios")
+    @PostMapping("/comentarios/post/{id}")
     public ResponseEntity<ComentarioResponse> criar(
             @AuthenticationPrincipal Usuario usuario,
             @PathVariable UUID id,

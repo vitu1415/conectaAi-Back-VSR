@@ -23,17 +23,17 @@ public class PostController {
     @Autowired
     private PostService postService;
 
-    @GetMapping("/feed/{usuarioId}")
+    @GetMapping("/post/{usuarioId}")
     public ResponseEntity<List<FeedEventoResponse>> feed(@PathVariable UUID usuarioId) {
         return ResponseEntity.ok(postService.feed(usuarioId));
     }
 
-    @GetMapping("post/eventos/{eventoId}")
+    @GetMapping("/post/eventos/{eventoId}")
     public ResponseEntity<List<PostResponse>> listarPorEvento(@PathVariable UUID eventoId) {
         return ResponseEntity.ok(postService.listarPorEvento(eventoId));
     }
 
-    @GetMapping("post/usuarios/{usuarioId}")
+    @GetMapping("/post/usuarios/{usuarioId}")
     public ResponseEntity<List<PostResponse>> listarPorUsuario(
             @PathVariable UUID usuarioId,
             @AuthenticationPrincipal Usuario usuario) {
@@ -71,14 +71,14 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/feed/{id}/curtir")
+    @PostMapping("/post/{id}/curtir")
     public ResponseEntity<PostResponse> curtir(
             @AuthenticationPrincipal Usuario usuario,
             @PathVariable UUID id) {
         return ResponseEntity.ok(postService.curtir(usuario, id));
     }
 
-    @DeleteMapping("/feed/{id}/curtir")
+    @DeleteMapping("/post/{id}/curtir")
     public ResponseEntity<PostResponse> descurtir(
             @AuthenticationPrincipal Usuario usuario,
             @PathVariable UUID id) {

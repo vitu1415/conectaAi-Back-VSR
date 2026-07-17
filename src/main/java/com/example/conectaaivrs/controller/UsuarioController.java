@@ -3,8 +3,10 @@ package com.example.conectaaivrs.controller;
 import com.example.conectaaivrs.domain.auth.dto.AtualizarFotoRequest;
 import com.example.conectaaivrs.domain.auth.dto.AtualizarUsuarioRequest;
 import com.example.conectaaivrs.domain.auth.dto.InteresseResponse;
+import com.example.conectaaivrs.domain.auth.dto.MeuEventoResponse;
 import com.example.conectaaivrs.domain.auth.dto.UsuarioResponse;
 import com.example.conectaaivrs.domain.usuario.Usuario;
+import com.example.conectaaivrs.service.InscricaoService;
 import com.example.conectaaivrs.service.UsuarioService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -23,6 +25,9 @@ public class UsuarioController {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private InscricaoService inscricaoService;
 
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponse> me(@AuthenticationPrincipal Usuario usuario) {
@@ -64,5 +69,10 @@ public class UsuarioController {
             @AuthenticationPrincipal Usuario usuario,
             @RequestBody List<String> nomes) {
         return ResponseEntity.ok(usuarioService.atualizarInteresses(usuario, nomes));
+    }
+
+    @GetMapping("/me/eventos")
+    public ResponseEntity<List<MeuEventoResponse>> meusEventos(@AuthenticationPrincipal Usuario usuario) {
+        return ResponseEntity.ok(inscricaoService.listarMeusEventos(usuario));
     }
 }

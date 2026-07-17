@@ -2,8 +2,10 @@ package com.example.conectaaivrs.controller;
 
 import com.example.conectaaivrs.domain.auth.dto.EventoRequest;
 import com.example.conectaaivrs.domain.auth.dto.EventoResponse;
+import com.example.conectaaivrs.domain.auth.dto.ParticipanteResponse;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.service.EventoService;
+import com.example.conectaaivrs.service.InscricaoService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,9 @@ public class EventoController {
 
     @Autowired
     private EventoService eventoService;
+
+    @Autowired
+    private InscricaoService inscricaoService;
 
     @GetMapping
     public ResponseEntity<List<EventoResponse>> listarTodos() {
@@ -65,5 +70,26 @@ public class EventoController {
             @PathVariable UUID id) {
         eventoService.deletar(usuario, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/participar")
+    public ResponseEntity<ParticipanteResponse> participar(
+            @AuthenticationPrincipal Usuario usuario,
+            @PathVariable UUID id) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(inscricaoService.participar(usuario, id));
+    }
+
+    @DeleteMapping("/{id}/participar")
+    public ResponseEntity<Void> cancelarParticipacao(
+            @AuthenticationPrincipal Usuario usuario,
+            @PathVariable UUID id) {
+        inscricaoService.cancelarParticipacao(usuario, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/participantes")
+    public ResponseEntity<List<ParticipanteResponse>> listarParticipantes(@PathVariable UUID id) {
+        return ResponseEntity.ok(inscricaoService.listarParticipantes(id));
     }
 }

@@ -74,8 +74,11 @@ public class UsuarioService {
         usuarioRepository.save(usuarioLogado);
     }
 
+    @Transactional(readOnly = true)
     public List<InteresseResponse> listarInteresses(Usuario usuarioLogado) {
-        return usuarioLogado.getInteresses().stream()
+        Usuario usuario = usuarioRepository.findById(usuarioLogado.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+        return usuario.getInteresses().stream()
                 .map(InteresseResponse::fromEntity)
                 .toList();
     }

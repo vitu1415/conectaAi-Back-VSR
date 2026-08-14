@@ -23,7 +23,7 @@ public class PostController {
     @Autowired
     private PostService postService;
 
-    @GetMapping("/post/{usuarioId}")
+    @GetMapping("/post/feed/{usuarioId}")
     public ResponseEntity<List<FeedEventoResponse>> feed(@PathVariable UUID usuarioId) {
         return ResponseEntity.ok(postService.feed(usuarioId));
     }

@@ -44,7 +44,12 @@ public class SecurityFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            throw new BadCredentialsException("Token inválido ou expirado");
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{\"error\":\"Token inválido ou expirado\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);

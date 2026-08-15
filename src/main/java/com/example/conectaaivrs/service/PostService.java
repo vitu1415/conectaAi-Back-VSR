@@ -15,12 +15,17 @@ import com.example.conectaaivrs.domain.post.TipoPost;
 import com.example.conectaaivrs.domain.post.VisibilidadePost;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.domain.usuario.UsuarioRepository;
+import com.example.conectaaivrs.infra.paginacao.CursorInfo;
+import com.example.conectaaivrs.infra.paginacao.PageResponse;
+import com.example.conectaaivrs.infra.paginacao.PaginacaoHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,10 +47,16 @@ public class PostService {
     @Autowired
     private CurtidaRepository curtidaRepository;
 
-    public List<FeedEventoResponse> feed(UUID usuarioLogado) {
-        List<Post> posts = postRepository.findFeedByUsuarioId(usuarioLogado);
+    public PageResponse<FeedEventoResponse> feed(UUID usuarioLogado, UUID cursorId, LocalDateTime cursorData, Integer limite) {
+        int limit = PaginacaoHelper.normalizarLimite(limite);
+        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_DESC_ID;
+        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_DESC_DATA;
+        List<Post> posts = postRepository.findPaginaFeed(usuarioLogado, data, id, PageRequest.of(0, limit + 1));
 
-        Map<UUID, List<PostResponse>> postsPorEvento = posts.stream()
+        boolean hasNext = posts.size() > limit;
+        List<Post> pagePosts = hasNext ? posts.subList(0, limit) : posts;
+
+        Map<UUID, List<PostResponse>> postsPorEvento = pagePosts.stream()
                 .collect(Collectors.groupingBy(
                         p -> p.getEvento().getId(),
                         LinkedHashMap::new,
@@ -59,9 +70,9 @@ public class PostService {
                         )
                 ));
 
-        return postsPorEvento.entrySet().stream()
+        List<FeedEventoResponse> content = postsPorEvento.entrySet().stream()
                 .map(entry -> {
-                    Evento evento = posts.stream()
+                    Evento evento = pagePosts.stream()
                             .filter(p -> p.getEvento().getId().equals(entry.getKey()))
                             .findFirst()
                             .get().getEvento();
@@ -71,34 +82,52 @@ public class PostService {
                     );
                 })
                 .toList();
+
+        CursorInfo nextCursor = null;
+        if (hasNext && !pagePosts.isEmpty()) {
+            Post ultimo = pagePosts.get(pagePosts.size() - 1);
+            nextCursor = new CursorInfo(ultimo.getId(), ultimo.getCriadoEm());
+        }
+
+        return new PageResponse<>(content, nextCursor, hasNext);
     }
 
-    public List<PostResponse> listarPorEvento(UUID eventoId) {
+    public PageResponse<PostResponse> listarPorEvento(UUID eventoId, UUID cursorId, LocalDateTime cursorData, Integer limite) {
         if (!eventoRepository.existsById(eventoId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado");
         }
-        return postRepository.findAllByEventoIdOrderByCriadoEmDesc(eventoId)
-                .stream()
-                .map(p -> PostResponse.fromEntity(
+        int limit = PaginacaoHelper.normalizarLimite(limite);
+        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_DESC_ID;
+        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_DESC_DATA;
+        List<Post> posts = postRepository.findPaginaPorEvento(eventoId, data, id, PageRequest.of(0, limit + 1));
+        return PaginacaoHelper.montar(
+                posts.stream().map(p -> PostResponse.fromEntity(
                         p,
                         curtidaRepository.countByPostId(p.getId()),
                         false
-                ))
-                .toList();
+                )).toList(),
+                limit,
+                p -> new CursorInfo(p.id(), p.criadoEm())
+        );
     }
 
-    public List<PostResponse> listarPorUsuario(UUID usuarioId, UUID usuarioLogadoId) {
+    public PageResponse<PostResponse> listarPorUsuario(UUID usuarioId, UUID usuarioLogadoId, UUID cursorId, LocalDateTime cursorData, Integer limite) {
         if (!usuarioRepository.existsById(usuarioId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado");
         }
-        return postRepository.findAllByAutorIdOrderByCriadoEmDesc(usuarioId)
-                .stream()
-                .map(p -> PostResponse.fromEntity(
+        int limit = PaginacaoHelper.normalizarLimite(limite);
+        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_DESC_ID;
+        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_DESC_DATA;
+        List<Post> posts = postRepository.findPaginaPorUsuario(usuarioId, data, id, PageRequest.of(0, limit + 1));
+        return PaginacaoHelper.montar(
+                posts.stream().map(p -> PostResponse.fromEntity(
                         p,
                         curtidaRepository.countByPostId(p.getId()),
                         curtidaRepository.existsByPostIdAndUsuarioId(p.getId(), usuarioLogadoId)
-                ))
-                .toList();
+                )).toList(),
+                limit,
+                p -> new CursorInfo(p.id(), p.criadoEm())
+        );
     }
 
     public PostResponse buscarPorId(UUID postId, UUID usuarioLogadoId) {

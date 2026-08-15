@@ -4,16 +4,21 @@ import com.example.conectaaivrs.domain.evento.dto.EventoRequest;
 import com.example.conectaaivrs.domain.evento.dto.EventoResponse;
 import com.example.conectaaivrs.domain.inscricao.dto.ParticipanteResponse;
 import com.example.conectaaivrs.domain.usuario.Usuario;
+import com.example.conectaaivrs.infra.paginacao.PageResponse;
 import com.example.conectaaivrs.service.EventoService;
 import com.example.conectaaivrs.service.InscricaoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,18 +34,41 @@ public class EventoController {
     private InscricaoService inscricaoService;
 
     @GetMapping
-    public ResponseEntity<List<EventoResponse>> listarTodos() {
-        return ResponseEntity.ok(eventoService.listarTodos());
+    @Operation(summary = "Listar eventos paginados por cursor",
+            description = "Retorna uma página de eventos. Use o `nextCursor` da resposta anterior na próxima chamada. `cursorData` é a data de criação do último item recebido e `cursorId` o seu id.")
+    public ResponseEntity<PageResponse<EventoResponse>> listarTodos(
+            @Parameter(description = "Id do último evento recebido (vem de nextCursor.id)")
+            @RequestParam(required = false) UUID cursorId,
+            @Parameter(description = "Data de criação do último evento recebido (vem de nextCursor.data)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursorData,
+            @Parameter(description = "Quantidade de itens por página (padrão 5, máximo 10)")
+            @RequestParam(required = false) Integer limite) {
+        return ResponseEntity.ok(eventoService.listarTodos(cursorId, cursorData, limite));
     }
 
     @GetMapping("/destaques")
-    public ResponseEntity<List<EventoResponse>> listarDestaques() {
-        return ResponseEntity.ok(eventoService.listarDestaques());
+    @Operation(summary = "Listar eventos em destaque paginados por cursor")
+    public ResponseEntity<PageResponse<EventoResponse>> listarDestaques(
+            @Parameter(description = "Id do último evento recebido (vem de nextCursor.id)")
+            @RequestParam(required = false) UUID cursorId,
+            @Parameter(description = "Data de criação do último evento recebido (vem de nextCursor.data)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursorData,
+            @Parameter(description = "Quantidade de itens por página (padrão 5, máximo 10)")
+            @RequestParam(required = false) Integer limite) {
+        return ResponseEntity.ok(eventoService.listarDestaques(cursorId, cursorData, limite));
     }
 
     @GetMapping("/proximos")
-    public ResponseEntity<List<EventoResponse>> listarProximos() {
-        return ResponseEntity.ok(eventoService.listarProximos());
+    @Operation(summary = "Listar próximos eventos paginados por cursor",
+            description = "Ordenados por data de início. Use `nextCursor` da resposta anterior na próxima chamada.")
+    public ResponseEntity<PageResponse<EventoResponse>> listarProximos(
+            @Parameter(description = "Id do último evento recebido (vem de nextCursor.id)")
+            @RequestParam(required = false) UUID cursorId,
+            @Parameter(description = "Data de início do último evento recebido (vem de nextCursor.data)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursorData,
+            @Parameter(description = "Quantidade de itens por página (padrão 5, máximo 10)")
+            @RequestParam(required = false) Integer limite) {
+        return ResponseEntity.ok(eventoService.listarProximos(cursorId, cursorData, limite));
     }
 
     @GetMapping("/{id}")

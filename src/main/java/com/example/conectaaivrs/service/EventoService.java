@@ -6,7 +6,11 @@ import com.example.conectaaivrs.domain.evento.Evento;
 import com.example.conectaaivrs.domain.evento.EventoRepository;
 import com.example.conectaaivrs.domain.evento.EventoStatus;
 import com.example.conectaaivrs.domain.usuario.Usuario;
+import com.example.conectaaivrs.infra.paginacao.CursorInfo;
+import com.example.conectaaivrs.infra.paginacao.PageResponse;
+import com.example.conectaaivrs.infra.paginacao.PaginacaoHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,26 +26,40 @@ public class EventoService {
     @Autowired
     private EventoRepository eventoRepository;
 
-    public List<EventoResponse> listarTodos() {
-        return eventoRepository.findAllByOrderByCriadoEmDesc()
-                .stream()
-                .map(EventoResponse::fromEntity)
-                .toList();
+    public PageResponse<EventoResponse> listarTodos(UUID cursorId, LocalDateTime cursorData, Integer limite) {
+        int limit = PaginacaoHelper.normalizarLimite(limite);
+        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_DESC_ID;
+        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_DESC_DATA;
+        List<Evento> eventos = eventoRepository.findPaginaTodos(data, id, PageRequest.of(0, limit + 1));
+        return PaginacaoHelper.montar(
+                eventos.stream().map(EventoResponse::fromEntity).toList(),
+                limit,
+                e -> new CursorInfo(e.id(), e.criadoEm())
+        );
     }
 
-    public List<EventoResponse> listarDestaques() {
-        return eventoRepository.findByStatusOrderByCriadoEmDesc(EventoStatus.PUBLICADO)
-                .stream()
-                .limit(6)
-                .map(EventoResponse::fromEntity)
-                .toList();
+    public PageResponse<EventoResponse> listarDestaques(UUID cursorId, LocalDateTime cursorData, Integer limite) {
+        int limit = PaginacaoHelper.normalizarLimite(limite);
+        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_DESC_ID;
+        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_DESC_DATA;
+        List<Evento> eventos = eventoRepository.findPaginaPorStatus(EventoStatus.PUBLICADO, data, id, PageRequest.of(0, limit + 1));
+        return PaginacaoHelper.montar(
+                eventos.stream().map(EventoResponse::fromEntity).toList(),
+                limit,
+                e -> new CursorInfo(e.id(), e.criadoEm())
+        );
     }
 
-    public List<EventoResponse> listarProximos() {
-        return eventoRepository.findByInicioAfterOrderByInicioAsc(LocalDateTime.now())
-                .stream()
-                .map(EventoResponse::fromEntity)
-                .toList();
+    public PageResponse<EventoResponse> listarProximos(UUID cursorId, LocalDateTime cursorData, Integer limite) {
+        int limit = PaginacaoHelper.normalizarLimite(limite);
+        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_ASC_ID;
+        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_ASC_DATA;
+        List<Evento> eventos = eventoRepository.findPaginaProximos(LocalDateTime.now(), data, id, PageRequest.of(0, limit + 1));
+        return PaginacaoHelper.montar(
+                eventos.stream().map(EventoResponse::fromEntity).toList(),
+                limit,
+                e -> new CursorInfo(e.id(), e.inicio())
+        );
     }
 
     public EventoResponse buscarPorId(UUID id) {

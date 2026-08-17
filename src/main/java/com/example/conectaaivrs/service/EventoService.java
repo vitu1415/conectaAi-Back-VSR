@@ -38,18 +38,6 @@ public class EventoService {
         );
     }
 
-    public PageResponse<EventoResponse> listarDestaques(UUID cursorId, LocalDateTime cursorData, Integer limite) {
-        int limit = PaginacaoHelper.normalizarLimite(limite);
-        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_DESC_ID;
-        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_DESC_DATA;
-        List<Evento> eventos = eventoRepository.findPaginaPorStatus(EventoStatus.PUBLICADO, data, id, PageRequest.of(0, limit + 1));
-        return PaginacaoHelper.montar(
-                eventos.stream().map(EventoResponse::fromEntity).toList(),
-                limit,
-                e -> new CursorInfo(e.id(), e.criadoEm())
-        );
-    }
-
     public PageResponse<EventoResponse> listarProximos(UUID cursorId, LocalDateTime cursorData, Integer limite) {
         int limit = PaginacaoHelper.normalizarLimite(limite);
         UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_ASC_ID;

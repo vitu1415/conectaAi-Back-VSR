@@ -46,18 +46,6 @@ public class EventoController {
         return ResponseEntity.ok(eventoService.listarTodos(cursorId, cursorData, limite));
     }
 
-    @GetMapping("/destaques")
-    @Operation(summary = "Listar eventos em destaque paginados por cursor")
-    public ResponseEntity<PageResponse<EventoResponse>> listarDestaques(
-            @Parameter(description = "Id do último evento recebido (vem de nextCursor.id)")
-            @RequestParam(required = false) UUID cursorId,
-            @Parameter(description = "Data de criação do último evento recebido (vem de nextCursor.data)")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursorData,
-            @Parameter(description = "Quantidade de itens por página (padrão 5, máximo 10)")
-            @RequestParam(required = false) Integer limite) {
-        return ResponseEntity.ok(eventoService.listarDestaques(cursorId, cursorData, limite));
-    }
-
     @GetMapping("/proximos")
     @Operation(summary = "Listar próximos eventos paginados por cursor",
             description = "Ordenados por data de início. Use `nextCursor` da resposta anterior na próxima chamada.")

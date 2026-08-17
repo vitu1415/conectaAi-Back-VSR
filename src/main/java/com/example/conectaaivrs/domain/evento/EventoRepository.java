@@ -11,8 +11,6 @@ import java.util.UUID;
 
 public interface EventoRepository extends JpaRepository<Evento, UUID> {
 
-    List<Evento> findAllByOrderByCriadoEmDesc();
-
     @Query("""
             SELECT e FROM Evento e
             WHERE e.criadoEm < :cursorData OR (e.criadoEm = :cursorData AND e.id < :cursorId)
@@ -44,6 +42,4 @@ public interface EventoRepository extends JpaRepository<Evento, UUID> {
                                     @Param("cursorId") UUID cursorId,
                                     Pageable pageable);
 
-    List<Evento> findByStatusOrderByCriadoEmDesc(EventoStatus status);
-    List<Evento> findByInicioAfterOrderByInicioAsc(LocalDateTime data);
 }

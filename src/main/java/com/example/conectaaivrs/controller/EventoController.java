@@ -19,7 +19,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -105,7 +104,16 @@ public class EventoController {
     }
 
     @GetMapping("/{id}/participantes")
-    public ResponseEntity<List<ParticipanteResponse>> listarParticipantes(@PathVariable UUID id) {
-        return ResponseEntity.ok(inscricaoService.listarParticipantes(id));
+    @Operation(summary = "Listar participantes do evento paginados por cursor",
+            description = "Ordenados por data de inscrição. Use o `nextCursor` da resposta anterior na próxima chamada. `cursorData` é a data de inscrição do último participante recebido e `cursorId` o seu id.")
+    public ResponseEntity<PageResponse<ParticipanteResponse>> listarParticipantes(
+            @PathVariable UUID id,
+            @Parameter(description = "Id do último participante recebido (vem de nextCursor.id)")
+            @RequestParam(required = false) UUID cursorId,
+            @Parameter(description = "Data de inscrição do último participante recebido (vem de nextCursor.data)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursorData,
+            @Parameter(description = "Quantidade de itens por página (padrão 5, máximo 10)")
+            @RequestParam(required = false) Integer limite) {
+        return ResponseEntity.ok(inscricaoService.listarParticipantes(id, cursorId, cursorData, limite));
     }
 }

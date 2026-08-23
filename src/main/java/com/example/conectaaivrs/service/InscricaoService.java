@@ -8,7 +8,11 @@ import com.example.conectaaivrs.domain.inscricao.ParticipanteEventoRepository;
 import com.example.conectaaivrs.domain.inscricao.ParticipantePapel;
 import com.example.conectaaivrs.domain.inscricao.ParticipanteStatus;
 import com.example.conectaaivrs.domain.usuario.Usuario;
+import com.example.conectaaivrs.infra.paginacao.CursorInfo;
+import com.example.conectaaivrs.infra.paginacao.PageResponse;
+import com.example.conectaaivrs.infra.paginacao.PaginacaoHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,15 +74,21 @@ public class InscricaoService {
         participanteRepository.delete(participante);
     }
 
-    public List<ParticipanteResponse> listarParticipantes(UUID eventoId) {
+    public PageResponse<ParticipanteResponse> listarParticipantes(UUID eventoId, UUID cursorId, LocalDateTime cursorData, Integer limite) {
         if (!eventoRepository.existsById(eventoId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado");
         }
 
-        return participanteRepository.findAllByEventoIdOrderByDataInscricaoAsc(eventoId)
-                .stream()
-                .map(ParticipanteResponse::fromEntity)
-                .toList();
+        int limit = PaginacaoHelper.normalizarLimite(limite);
+        UUID id = cursorId != null ? cursorId : PaginacaoHelper.INICIO_ASC_ID;
+        LocalDateTime data = cursorData != null ? cursorData : PaginacaoHelper.INICIO_ASC_DATA;
+        List<ParticipanteEvento> participantes = participanteRepository
+                .findPaginaPorEvento(eventoId, data, id, PageRequest.of(0, limit + 1));
+        return PaginacaoHelper.montar(
+                participantes.stream().map(ParticipanteResponse::fromEntity).toList(),
+                limit,
+                p -> new CursorInfo(p.id(), p.dataInscricao())
+        );
     }
 
     public List<MeuEventoResponse> listarMeusEventos(Usuario usuario) {

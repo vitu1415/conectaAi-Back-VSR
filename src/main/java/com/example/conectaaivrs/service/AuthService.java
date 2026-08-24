@@ -114,7 +114,7 @@ public class AuthService {
         RefreshToken refreshToken = RefreshToken.builder()
                 .usuario(usuario)
                 .token(UUID.randomUUID().toString())
-                .expiraEm(LocalDateTime.now().plusDays(7))
+                .expiraEm(LocalDateTime.now().plusDays(30))
                 .build();
 
         refreshTokenRepository.save(refreshToken);

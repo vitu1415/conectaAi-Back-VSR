@@ -95,4 +95,14 @@ public class UsuarioService {
                 .map(InteresseResponse::fromEntity)
                 .toList();
     }
+
+    public Usuario criarUsuarioGoogle(String providerId, String email) {
+        Usuario usuario = Usuario.builder()
+                .email(email)
+                .provider("Google")
+                .providerId(providerId)
+                .build();
+
+        return usuarioRepository.save(usuario);
+    }
 }

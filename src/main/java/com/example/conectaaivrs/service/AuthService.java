@@ -56,7 +56,7 @@ public class AuthService {
                 .dataNascimento(request.dataNascimento())
                 .genero(request.genero())
                 .bio(request.bio())
-                .fotoPerfil(request.fotoPerfil())
+                .fotoPerfil("https://d38sp318d0ruxp.cloudfront.net/profile/72a4c371-863f-400b-93c0-5c314858fa5a.png")//url padrão para foto de perfil
                 .cidade(request.cidade())
                 .estado(request.estado())
                 .build();

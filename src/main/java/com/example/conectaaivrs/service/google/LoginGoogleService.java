@@ -17,11 +17,7 @@ public class LoginGoogleService {
     @Value("${google.oauth.client.secret}")
     private String clientSecret;
     private final String redirectUri = "http://localhost:8080/auth/login/google/autorizado";
-    private final RestClient restClient;
-
-    public LoginGoogleService(RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder.build();
-    }
+    private final RestClient restClient = RestClient.create();
 
     public String gerarUrl(){
         return "https://accounts.google.com/o/oauth2/v2/auth"+

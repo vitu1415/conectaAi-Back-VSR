@@ -1,7 +1,6 @@
 package com.example.conectaaivrs.service;
 
 import com.example.conectaaivrs.domain.auth.dto.*;
-import com.example.conectaaivrs.domain.google.CreateProviderGoogleDTO;
 import com.example.conectaaivrs.domain.google.GoogleUserInfoDTO;
 import com.example.conectaaivrs.domain.refreshToken.RefreshToken;
 import com.example.conectaaivrs.domain.refreshToken.RefreshTokenRepository;
@@ -124,25 +123,20 @@ public class AuthService {
     }
 
     public TokenResponse acessoAuthGoogle(GoogleUserInfoDTO googleUserInfoDTO, HttpServletResponse response) {
-        boolean usuarioExiste = usuarioRepository.existsByEmail(googleUserInfoDTO.email());
-        if (usuarioExiste){
-            Optional<Usuario> usuario = usuarioRepository.findByEmail(googleUserInfoDTO.email());
-            var authToken = new UsernamePasswordAuthenticationToken(googleUserInfoDTO.email(), null, usuario.get().getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-            return gerarTokenResponse(usuario.get(), response);
-        } else {
-            CreateProviderGoogleDTO dados = new CreateProviderGoogleDTO(
-                    null,
-                    googleUserInfoDTO.email(),
-                    "Google",
-                    googleUserInfoDTO.providerId()
-            );
-            Usuario usuario = usuarioService.criarUsuarioGoogle(dados.providerId(), dados.email());
+        Optional<Usuario> usuarioExistente = usuarioRepository.findByEmail(googleUserInfoDTO.email());
+
+        if (usuarioExistente.isPresent()) {
+            Usuario usuario = usuarioExistente.get();
             var authToken = new UsernamePasswordAuthenticationToken(googleUserInfoDTO.email(), null, usuario.getAuthorities());
-            var authentication = authenticationManager.authenticate(authToken);
-            usuario = (Usuario) authentication.getPrincipal();
+            SecurityContextHolder.getContext().setAuthentication(authToken);
             return gerarTokenResponse(usuario, response);
         }
+
+        Usuario usuario = usuarioService.criarUsuarioGoogle(googleUserInfoDTO.providerId(), googleUserInfoDTO.email());
+        var authToken = new UsernamePasswordAuthenticationToken(googleUserInfoDTO.email(), null, usuario.getAuthorities());
+        var authentication = authenticationManager.authenticate(authToken);
+        usuario = (Usuario) authentication.getPrincipal();
+        return gerarTokenResponse(usuario, response);
     }
 
     private void revokeAllTokens(UUID usuarioId) {

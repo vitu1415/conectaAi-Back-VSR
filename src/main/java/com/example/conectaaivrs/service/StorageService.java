@@ -9,11 +9,18 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.io.IOException;
 import java.util.UUID;
 
 @Service
 public class StorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
     private final AwsS3Config awsS3Config;
 
@@ -47,10 +54,11 @@ public class StorageService {
 
             return new UploadResponse(url, nomeArquivo, arquivo.getContentType());
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao fazer upload do arquivo", e);
+            log.error("Erro ao ler arquivo para upload: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao ler o arquivo enviado");
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Erro ao fazer upload para o S3", e);
+            log.error("Erro ao fazer upload para S3: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Erro ao fazer upload para o armazenamento");
         }
     }
 
@@ -74,10 +82,11 @@ public class StorageService {
 
             return new UploadResponse(url, nomeArquivo, arquivo.getContentType());
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao fazer upload do arquivo", e);
+            log.error("Erro ao ler arquivo para upload: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao ler o arquivo enviado");
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Erro ao fazer upload para o S3", e);
+            log.error("Erro ao fazer upload para S3: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Erro ao fazer upload para o armazenamento");
         }
     }
 

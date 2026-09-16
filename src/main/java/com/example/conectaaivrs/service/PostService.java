@@ -91,7 +91,9 @@ public class PostService {
                     Evento evento = pagePosts.stream()
                             .filter(p -> p.getEvento().getId().equals(entry.getKey()))
                             .findFirst()
-                            .get().getEvento();
+                            .map(Post::getEvento)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND, "Evento não encontrado para o post"));
                     return new FeedEventoResponse(
                             EventoResponse.fromEntity(evento),
                             entry.getValue()

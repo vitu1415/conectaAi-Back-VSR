@@ -54,6 +54,33 @@ public class StorageService {
         }
     }
 
+    public UploadResponse uploadMidiaPost(MultipartFile arquivo) {
+        try {
+            String nomeArquivo = gerarNomeArquivo(arquivo.getOriginalFilename());
+            String chaveS3 = "posts/" + nomeArquivo;
+
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(chaveS3)
+                    .contentType(arquivo.getContentType())
+                    .build();
+
+            S3Client s3Client = awsS3Config.s3Client();
+
+            s3Client.putObject(putObjectRequest,
+                    RequestBody.fromInputStream(arquivo.getInputStream(), arquivo.getSize()));
+
+            String url = gerarUrl(chaveS3);
+
+            return new UploadResponse(url, nomeArquivo, arquivo.getContentType());
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao fazer upload do arquivo", e);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Erro ao fazer upload para o S3", e);
+        }
+    }
+
     private String gerarNomeArquivo(String nomeOriginal) {
         String extensao = "";
         if (nomeOriginal != null && nomeOriginal.contains(".")) {

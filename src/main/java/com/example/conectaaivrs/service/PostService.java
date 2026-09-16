@@ -9,10 +9,13 @@ import com.example.conectaaivrs.domain.post.dto.PostResponse;
 import com.example.conectaaivrs.domain.evento.Evento;
 import com.example.conectaaivrs.domain.evento.EventoRepository;
 import com.example.conectaaivrs.domain.inscricao.ParticipanteEventoRepository;
+import com.example.conectaaivrs.domain.post.MidiaPost;
+import com.example.conectaaivrs.domain.post.MidiaTipo;
 import com.example.conectaaivrs.domain.post.Post;
 import com.example.conectaaivrs.domain.post.PostRepository;
 import com.example.conectaaivrs.domain.post.TipoPost;
 import com.example.conectaaivrs.domain.post.VisibilidadePost;
+import com.example.conectaaivrs.domain.storage.dto.UploadResponse;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.domain.usuario.UsuarioRepository;
 import com.example.conectaaivrs.infra.paginacao.CursorInfo;
@@ -23,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -46,6 +50,18 @@ public class PostService {
 
     @Autowired
     private CurtidaRepository curtidaRepository;
+
+    @Autowired
+    private StorageService storageService;
+
+    private static final int MAX_MIDIAS = 10;
+    private static final Set<String> TIPOS_IMAGEM = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
+    private static final Set<String> TIPOS_VIDEO = Set.of("video/mp4", "video/quicktime", "video/x-msvideo");
+    private static final Set<String> CONTENT_TYPES_PERMITIDOS = new HashSet<>();
+    static {
+        CONTENT_TYPES_PERMITIDOS.addAll(TIPOS_IMAGEM);
+        CONTENT_TYPES_PERMITIDOS.addAll(TIPOS_VIDEO);
+    }
 
     public PageResponse<FeedEventoResponse> feed(UUID usuarioLogado, UUID cursorId, LocalDateTime cursorData, Integer limite) {
         int limit = PaginacaoHelper.normalizarLimite(limite);
@@ -140,7 +156,12 @@ public class PostService {
         );
     }
 
-    public PostResponse criar(Usuario autor, PostRequest request) {
+    @Transactional
+    public PostResponse criar(Usuario autor, PostRequest request, List<MultipartFile> midias) {
+        if (request.eventoId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "eventoId é obrigatório");
+        }
+
         Evento evento = eventoRepository.findById(request.eventoId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado"));
 
@@ -150,20 +171,44 @@ public class PostService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas participantes do evento podem postar");
         }
 
+        if ((midias == null || midias.isEmpty()) && (request.texto() == null || request.texto().isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O post deve ter texto e/ou mídias");
+        }
+
         Post post = Post.builder()
                 .evento(evento)
                 .autor(autor)
                 .texto(request.texto())
-                .imagemUrl(request.imagemUrl())
                 .tipo(request.tipo() != null ? request.tipo() : TipoPost.TEXTO)
                 .visibilidade(request.visibilidade() != null ? request.visibilidade() : VisibilidadePost.PUBLICO)
                 .build();
+
+        if (midias != null && !midias.isEmpty()) {
+            validarMidias(midias);
+            post.setMidias(new ArrayList<>());
+            for (int i = 0; i < midias.size(); i++) {
+                MultipartFile arquivo = midias.get(i);
+                UploadResponse upload = storageService.uploadMidiaPost(arquivo);
+                MidiaTipo tipoMidia = TIPOS_IMAGEM.contains(arquivo.getContentType()) ? MidiaTipo.IMAGEM : MidiaTipo.VIDEO;
+                MidiaPost midia = MidiaPost.builder()
+                        .post(post)
+                        .url(upload.url())
+                        .nomeArquivo(upload.nomeArquivo())
+                        .contentType(upload.contentType())
+                        .tipo(tipoMidia)
+                        .ordem(i)
+                        .build();
+                post.getMidias().add(midia);
+            }
+            post.setTipo(definirTipoPost(midias));
+        }
 
         postRepository.save(post);
         return PostResponse.fromEntity(post, 0, false);
     }
 
-    public PostResponse atualizar(Usuario usuarioLogado, UUID postId, PostRequest request) {
+    @Transactional
+    public PostResponse atualizar(Usuario usuarioLogado, UUID postId, PostRequest request, List<MultipartFile> midias) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post não encontrado"));
 
@@ -172,9 +217,30 @@ public class PostService {
         }
 
         post.setTexto(request.texto());
-        post.setImagemUrl(request.imagemUrl());
         if (request.tipo() != null) post.setTipo(request.tipo());
         if (request.visibilidade() != null) post.setVisibilidade(request.visibilidade());
+
+        if (midias != null) {
+            validarMidias(midias);
+            post.getMidias().clear();
+            for (int i = 0; i < midias.size(); i++) {
+                MultipartFile arquivo = midias.get(i);
+                UploadResponse upload = storageService.uploadMidiaPost(arquivo);
+                MidiaTipo tipoMidia = TIPOS_IMAGEM.contains(arquivo.getContentType()) ? MidiaTipo.IMAGEM : MidiaTipo.VIDEO;
+                MidiaPost midia = MidiaPost.builder()
+                        .post(post)
+                        .url(upload.url())
+                        .nomeArquivo(upload.nomeArquivo())
+                        .contentType(upload.contentType())
+                        .tipo(tipoMidia)
+                        .ordem(i)
+                        .build();
+                post.getMidias().add(midia);
+            }
+            if (!midias.isEmpty()) {
+                post.setTipo(definirTipoPost(midias));
+            }
+        }
 
         postRepository.save(post);
         return PostResponse.fromEntity(
@@ -236,5 +302,31 @@ public class PostService {
                 curtidaRepository.countByPostId(postId),
                 false
         );
+    }
+
+    private void validarMidias(List<MultipartFile> midias) {
+        if (midias.size() > MAX_MIDIAS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O post pode ter no máximo " + MAX_MIDIAS + " mídias");
+        }
+        for (MultipartFile arquivo : midias) {
+            if (arquivo.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Arquivo vazio não é permitido");
+            }
+            String contentType = arquivo.getContentType();
+            if (contentType == null || !CONTENT_TYPES_PERMITIDOS.contains(contentType)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Tipo de arquivo não permitido: " + contentType
+                                + ". Tipos aceitos: imagens (JPEG, PNG, GIF, WEBP) e vídeos (MP4, MOV, AVI)");
+            }
+        }
+    }
+
+    private TipoPost definirTipoPost(List<MultipartFile> midias) {
+        boolean temVideo = midias.stream().anyMatch(m -> TIPOS_VIDEO.contains(m.getContentType()));
+        if (temVideo) return TipoPost.VIDEO;
+        boolean temImagem = midias.stream().anyMatch(m -> TIPOS_IMAGEM.contains(m.getContentType()));
+        if (temImagem) return TipoPost.IMAGEM;
+        return TipoPost.TEXTO;
     }
 }

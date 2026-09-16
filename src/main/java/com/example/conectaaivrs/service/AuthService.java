@@ -7,7 +7,10 @@ import com.example.conectaaivrs.domain.refreshToken.RefreshToken;
 import com.example.conectaaivrs.domain.refreshToken.RefreshTokenRepository;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.domain.usuario.UsuarioRepository;
+import com.example.conectaaivrs.infra.config.RefreshTokenCookieProperties;
 import com.example.conectaaivrs.infra.security.TokenService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -42,7 +45,10 @@ public class AuthService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
-    public TokenResponse register(RegisterRequest request) {
+    @Autowired
+    private RefreshTokenCookieProperties cookieProperties;
+
+    public TokenResponse register(RegisterRequest request, HttpServletResponse response) {
         if (usuarioRepository.findByEmail(request.email()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email já cadastrado");
         }
@@ -56,17 +62,17 @@ public class AuthService {
                 .dataNascimento(request.dataNascimento())
                 .genero(request.genero())
                 .bio(request.bio())
-                .fotoPerfil("https://d38sp318d0ruxp.cloudfront.net/profile/72a4c371-863f-400b-93c0-5c314858fa5a.png")//url padrão para foto de perfil
+                .fotoPerfil("https://d38sp318d0ruxp.cloudfront.net/profile/72a4c371-863f-400b-93c0-5c314858fa5a.png")
                 .cidade(request.cidade())
                 .estado(request.estado())
                 .build();
 
         usuarioRepository.save(usuario);
 
-        return gerarTokenResponse(usuario);
+        return gerarTokenResponse(usuario, response);
     }
 
-    public TokenResponse login(LoginRequest request) {
+    public TokenResponse login(LoginRequest request, HttpServletResponse response) {
         var authToken = new UsernamePasswordAuthenticationToken(request.email(), request.senha());
         var authentication = authenticationManager.authenticate(authToken);
 
@@ -74,11 +80,15 @@ public class AuthService {
         usuario.setUltimoLogin(LocalDateTime.now());
         usuarioRepository.save(usuario);
 
-        return gerarTokenResponse(usuario);
+        return gerarTokenResponse(usuario, response);
     }
 
-    public TokenResponse refreshToken(RefreshTokenRequest request) {
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.refreshToken())
+    public TokenResponse refreshToken(String refreshTokenValue, HttpServletResponse response) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token não fornecido");
+        }
+
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token não encontrado"));
 
         if (!refreshToken.isValid()) {
@@ -88,15 +98,19 @@ public class AuthService {
         refreshToken.setRevogado(true);
         refreshTokenRepository.save(refreshToken);
 
-        return gerarTokenResponse(refreshToken.getUsuario());
+        return gerarTokenResponse(refreshToken.getUsuario(), response);
     }
 
-    public void logout(LogoutRequest request) {
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.refreshToken())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Refresh token não encontrado"));
+    public void logout(String refreshTokenValue, HttpServletResponse response) {
+        if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
+            refreshTokenRepository.findByToken(refreshTokenValue)
+                    .ifPresent(token -> {
+                        token.setRevogado(true);
+                        refreshTokenRepository.save(token);
+                    });
+        }
 
-        refreshToken.setRevogado(true);
-        refreshTokenRepository.save(refreshToken);
+        limparCookie(response);
     }
 
     public void redefinirSenha(RedefinirSenhaRequest request) {
@@ -109,13 +123,13 @@ public class AuthService {
         revokeAllTokens(usuario.getId());
     }
 
-    public TokenResponse acessoAuthGoogle(GoogleUserInfoDTO googleUserInfoDTO) {
+    public TokenResponse acessoAuthGoogle(GoogleUserInfoDTO googleUserInfoDTO, HttpServletResponse response) {
         boolean usuarioExiste = usuarioRepository.existsByEmail(googleUserInfoDTO.email());
         if (usuarioExiste){
             Optional<Usuario> usuario = usuarioRepository.findByEmail(googleUserInfoDTO.email());
             var authToken = new UsernamePasswordAuthenticationToken(googleUserInfoDTO.email(), null, usuario.get().getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authToken);
-            return gerarTokenResponse(usuario.get());
+            return gerarTokenResponse(usuario.get(), response);
         } else {
             CreateProviderGoogleDTO dados = new CreateProviderGoogleDTO(
                     null,
@@ -127,7 +141,7 @@ public class AuthService {
             var authToken = new UsernamePasswordAuthenticationToken(googleUserInfoDTO.email(), null, usuario.getAuthorities());
             var authentication = authenticationManager.authenticate(authToken);
             usuario = (Usuario) authentication.getPrincipal();
-            return gerarTokenResponse(usuario);
+            return gerarTokenResponse(usuario, response);
         }
     }
 
@@ -137,7 +151,7 @@ public class AuthService {
         refreshTokenRepository.saveAll(tokens);
     }
 
-    private TokenResponse gerarTokenResponse(Usuario usuario) {
+    private TokenResponse gerarTokenResponse(Usuario usuario, HttpServletResponse response) {
         String accessToken = tokenService.gerarToken(usuario);
 
         RefreshToken refreshToken = RefreshToken.builder()
@@ -148,6 +162,26 @@ public class AuthService {
 
         refreshTokenRepository.save(refreshToken);
 
-        return new TokenResponse(accessToken, refreshToken.getToken());
+        adicionarCookie(response, refreshToken.getToken());
+
+        return new TokenResponse(accessToken);
+    }
+
+    private void adicionarCookie(HttpServletResponse response, String valor) {
+        Cookie cookie = new Cookie(cookieProperties.getName(), valor);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(cookieProperties.isSecure());
+        cookie.setPath(cookieProperties.getPath());
+        cookie.setMaxAge(cookieProperties.getMaxAge());
+        response.addCookie(cookie);
+    }
+
+    private void limparCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(cookieProperties.getName(), "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(cookieProperties.isSecure());
+        cookie.setPath(cookieProperties.getPath());
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 }

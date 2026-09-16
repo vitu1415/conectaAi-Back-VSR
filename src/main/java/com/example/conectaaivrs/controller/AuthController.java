@@ -4,6 +4,7 @@ import com.example.conectaaivrs.domain.auth.dto.*;
 import com.example.conectaaivrs.domain.usuario.Usuario;
 import com.example.conectaaivrs.domain.usuario.dto.UsuarioResponse;
 import com.example.conectaaivrs.service.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,23 +19,29 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody @Valid LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<TokenResponse> login(@RequestBody @Valid LoginRequest request,
+                                               HttpServletResponse response) {
+        return ResponseEntity.ok(authService.login(request, response));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<TokenResponse> register(@RequestBody @Valid RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+    public ResponseEntity<TokenResponse> register(@RequestBody @Valid RegisterRequest request,
+                                                  HttpServletResponse response) {
+        return ResponseEntity.ok(authService.register(request, response));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<TokenResponse> refreshToken(@RequestBody @Valid RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refreshToken(request));
+    public ResponseEntity<TokenResponse> refreshToken(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+        return ResponseEntity.ok(authService.refreshToken(refreshToken, response));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestBody @Valid LogoutRequest request) {
-        authService.logout(request);
+    public ResponseEntity<Void> logout(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+        authService.logout(refreshToken, response);
         return ResponseEntity.ok().build();
     }
 

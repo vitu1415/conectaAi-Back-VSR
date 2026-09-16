@@ -48,9 +48,9 @@ public class LoginGoogleController {
 
         GoogleUserInfoDTO userInfo = loginGoogleService.captureInfosUserGoogle(code);
 
-        TokenResponse tokenDTO = authService.acessoAuthGoogle(userInfo);
+        TokenResponse tokenDTO = authService.acessoAuthGoogle(userInfo, response);
 
-        response.sendRedirect("http://localhost:5173/login/success?refreshToken=" +
-                URLEncoder.encode(tokenDTO.refreshToken(), StandardCharsets.UTF_8));
+        response.sendRedirect("http://localhost:5173/login/success?accessToken=" +
+                URLEncoder.encode(tokenDTO.accessToken(), StandardCharsets.UTF_8));
     }
 }

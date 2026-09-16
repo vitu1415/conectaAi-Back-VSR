@@ -6,6 +6,7 @@ import com.example.conectaaivrs.domain.post.VisibilidadePost;
 import com.example.conectaaivrs.domain.usuario.dto.UsuarioResumo;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record PostResponse(
@@ -13,7 +14,7 @@ public record PostResponse(
         UUID eventoId,
         UsuarioResumo autor,
         String texto,
-        String imagemUrl,
+        List<MidiaPostResponse> midias,
         TipoPost tipo,
         VisibilidadePost visibilidade,
         Boolean ativo,
@@ -23,12 +24,16 @@ public record PostResponse(
         LocalDateTime atualizadoEm
 ) {
     public static PostResponse fromEntity(Post post, int curtidasCount, boolean curtido) {
+        List<MidiaPostResponse> midias = post.getMidias() != null
+                ? post.getMidias().stream().map(MidiaPostResponse::fromEntity).toList()
+                : List.of();
+
         return new PostResponse(
                 post.getId(),
                 post.getEvento().getId(),
                 UsuarioResumo.fromEntity(post.getAutor()),
                 post.getTexto(),
-                post.getImagemUrl(),
+                midias,
                 post.getTipo(),
                 post.getVisibilidade(),
                 post.getAtivo(),

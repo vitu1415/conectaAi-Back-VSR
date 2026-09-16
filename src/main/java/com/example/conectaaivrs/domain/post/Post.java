@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -29,7 +31,7 @@ public class Post {
     @JoinColumn(name = "autor_id", nullable = false)
     private Usuario autor;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String texto;
 
     @Column(name = "imagem_url")
@@ -45,6 +47,10 @@ public class Post {
 
     @Builder.Default
     private Boolean ativo = true;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<MidiaPost> midias = new ArrayList<>();
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm;

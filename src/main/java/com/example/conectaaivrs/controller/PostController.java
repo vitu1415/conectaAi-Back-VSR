@@ -1,5 +1,7 @@
 package com.example.conectaaivrs.controller;
 
+import com.example.conectaaivrs.domain.post.TipoPost;
+import com.example.conectaaivrs.domain.post.VisibilidadePost;
 import com.example.conectaaivrs.domain.post.dto.FeedEventoResponse;
 import com.example.conectaaivrs.domain.post.dto.PostRequest;
 import com.example.conectaaivrs.domain.post.dto.PostResponse;
@@ -9,15 +11,17 @@ import com.example.conectaaivrs.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -68,12 +72,18 @@ public class PostController {
         return ResponseEntity.ok(postService.listarPorUsuario(usuarioId, usuario.getId(), cursorId, cursorData, limite));
     }
 
-    @PostMapping("/post")
+    @PostMapping(value = "/post", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Criar post com texto e mídias (imagens/vídeos)")
     public ResponseEntity<PostResponse> criar(
             @AuthenticationPrincipal Usuario usuario,
-            @RequestBody @Valid PostRequest request) {
+            @RequestParam UUID eventoId,
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) TipoPost tipo,
+            @RequestParam(required = false) VisibilidadePost visibilidade,
+            @RequestPart(value = "midias", required = false) List<MultipartFile> midias) {
+        PostRequest request = new PostRequest(eventoId, texto, tipo, visibilidade);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(postService.criar(usuario, request));
+                .body(postService.criar(usuario, request, midias));
     }
 
     @GetMapping("/post/{id}")
@@ -83,12 +93,17 @@ public class PostController {
         return ResponseEntity.ok(postService.buscarPorId(id, usuario.getId()));
     }
 
-    @PutMapping("/post/{id}")
+    @PutMapping(value = "/post/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Atualizar post com texto e mídias")
     public ResponseEntity<PostResponse> atualizar(
             @AuthenticationPrincipal Usuario usuario,
             @PathVariable UUID id,
-            @RequestBody @Valid PostRequest request) {
-        return ResponseEntity.ok(postService.atualizar(usuario, id, request));
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) TipoPost tipo,
+            @RequestParam(required = false) VisibilidadePost visibilidade,
+            @RequestPart(value = "midias", required = false) List<MultipartFile> midias) {
+        PostRequest request = new PostRequest(null, texto, tipo, visibilidade);
+        return ResponseEntity.ok(postService.atualizar(usuario, id, request, midias));
     }
 
     @DeleteMapping("/post/{id}")

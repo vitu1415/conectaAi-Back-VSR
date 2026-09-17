@@ -162,20 +162,22 @@ public class AuthService {
     }
 
     private void adicionarCookie(HttpServletResponse response, String valor) {
-        Cookie cookie = new Cookie(cookieProperties.getName(), valor);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieProperties.isSecure());
-        cookie.setPath(cookieProperties.getPath());
-        cookie.setMaxAge(cookieProperties.getMaxAge());
-        response.addCookie(cookie);
+        String cookie = String.format(
+                "%s=%s; Path=%s; Max-Age=%d; HttpOnly; Secure; SameSite=None",
+                cookieProperties.getName(),
+                valor,
+                cookieProperties.getPath(),
+                cookieProperties.getMaxAge()
+        );
+        response.setHeader("Set-Cookie", cookie);
     }
 
     private void limparCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(cookieProperties.getName(), "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieProperties.isSecure());
-        cookie.setPath(cookieProperties.getPath());
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        String cookie = String.format(
+                "%s=; Path=%s; Max-Age=0; HttpOnly; Secure; SameSite=None",
+                cookieProperties.getName(),
+                cookieProperties.getPath()
+        );
+        response.setHeader("Set-Cookie", cookie);
     }
 }

@@ -10,7 +10,7 @@ public class RefreshTokenCookieProperties {
     private String name = "refreshToken";
     private int maxAge = 30 * 24 * 60 * 60; // 30 days in seconds
     private boolean secure = false;
-    private String sameSite = "Lax";
+    private String sameSite = "None";
     private String path = "/auth";
 
     public String getName() {

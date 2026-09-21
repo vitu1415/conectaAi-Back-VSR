@@ -110,7 +110,7 @@ public class PostService {
         return new PageResponse<>(content, nextCursor, hasNext);
     }
 
-    public PageResponse<PostResponse> listarPorEvento(UUID eventoId, UUID cursorId, LocalDateTime cursorData, Integer limite) {
+    public PageResponse<PostResponse> listarPorEvento(Usuario usuario, UUID eventoId, UUID cursorId, LocalDateTime cursorData, Integer limite) {
         if (!eventoRepository.existsById(eventoId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado");
         }
@@ -122,7 +122,7 @@ public class PostService {
                 posts.stream().map(p -> PostResponse.fromEntity(
                         p,
                         curtidaRepository.countByPostId(p.getId()),
-                        false
+                        curtidaRepository.existsByPostIdAndUsuarioId(p.getId(), usuario.getId())
                 )).toList(),
                 limit,
                 p -> new CursorInfo(p.id(), p.criadoEm())

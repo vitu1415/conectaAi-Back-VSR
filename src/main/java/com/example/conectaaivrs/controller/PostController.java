@@ -54,8 +54,9 @@ public class PostController {
             @Parameter(description = "Data de criação do último post recebido (vem de nextCursor.data)")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursorData,
             @Parameter(description = "Quantidade de itens por página (padrão 5, máximo 10)")
-            @RequestParam(required = false) Integer limite) {
-        return ResponseEntity.ok(postService.listarPorEvento(eventoId, cursorId, cursorData, limite));
+            @RequestParam(required = false) Integer limite,
+            @AuthenticationPrincipal Usuario usuario) {
+        return ResponseEntity.ok(postService.listarPorEvento(usuario, eventoId, cursorId, cursorData, limite));
     }
 
     @GetMapping("/post/usuarios/{usuarioId}")

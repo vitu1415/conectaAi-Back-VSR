@@ -1,10 +1,11 @@
 # ConectaAI - VRS API
 
-API do ConectaAI (VRS), uma rede social focada em eventos. Construída com Spring Boot 4.1, Spring Security + JWT, JPA + Flyway e PostgreSQL.
+API do ConectaAI (VRS), uma rede social focada em eventos. Construída com Spring Boot 4.1, Spring Security + JWT, JPA + Flyway, PostgreSQL e AWS S3.
 
 ## Sumário
 
 - [Início rápido](#início-rápido)
+- [Stack](#stack)
 - [Autenticação](#autenticação)
 - [Paginação por cursor](#paginação-por-cursor)
 - [Endpoints](#endpoints)
@@ -27,9 +28,28 @@ A API sobe em `http://localhost:8080`.
 
 ---
 
+## Stack
+
+| Componente             | Tecnologia                                    |
+|------------------------|-----------------------------------------------|
+| Framework              | Spring Boot 4.1                               |
+| Autenticação           | Spring Security + JWT (com.auth0/java-jwt)    |
+| ORM                    | Spring Data JPA                               |
+| Migrations             | Flyway                                        |
+| Banco de dados         | PostgreSQL                                    |
+| Upload de arquivos     | AWS S3 + CloudFront                           |
+| Login social           | Google OAuth 2.0                              |
+| Documentação           | SpringDoc OpenAPI (Swagger UI)                |
+| Logging HTTP           | Zalando Logbook                               |
+| Build                  | Maven (wrapper)                               |
+
+---
+
 ## Autenticação
 
 Todos os endpoints de leitura/escrita (exceto `/auth/**`) exigem o header `Authorization: Bearer <token>`.
+
+### Login com e-mail/senha
 
 ```http
 POST /auth/login
@@ -47,9 +67,43 @@ Resposta:
 }
 ```
 
-- `POST /auth/register` — cria um usuário e já retorna o token.
-- `POST /auth/refresh-token` — renova o token de acesso.
-- `POST /auth/logout` — revoga o refresh token.
+### Endpoints de autenticação
+
+| Método   | Rota                                | Descrição                                      |
+|----------|-------------------------------------|-------------------------------------------------|
+| `POST`   | `/auth/login`                       | Login com e-mail e senha                        |
+| `POST`   | `/auth/register`                    | Registra usuário e retorna token                |
+| `POST`   | `/auth/refresh-token`               | Renova token (via cookie `refreshToken`)        |
+| `POST`   | `/auth/logout`                      | Revoga refresh token e limpa cookie             |
+| `POST`   | `/auth/redefinir-senha`             | Solicita redefinição de senha                   |
+| `GET`    | `/auth/me`                          | Retorna o perfil do usuário autenticado         |
+
+### Login com Google
+
+```http
+GET /auth/login/google
+```
+
+Redireciona o browser para a tela de consentimento do Google. Após autorização, o callback em `/auth/login/google/autorizado` troca o código por um token JWT e redireciona para o frontend com o `accessToken` na URL.
+
+Variáveis de ambiente necessárias:
+
+```
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+```
+
+### Refresh Token via Cookie
+
+O refresh token é enviado automaticamente via cookie HTTP-only. Configurações em `application.properties`:
+
+| Property                         | Padrão          | Descrição                        |
+|----------------------------------|-----------------|----------------------------------|
+| `app.security.cookie.name`       | `refreshToken`  | Nome do cookie                   |
+| `app.security.cookie.max-age`    | `604800`        | TTL em segundos (7 dias)         |
+| `app.security.cookie.secure`     | `true`          | Enviar apenas via HTTPS          |
+| `app.security.cookie.same-site`  | `None`          | Políticas SameSite               |
+| `app.security.cookie.path`       | `/auth`         | Path do cookie                   |
 
 ---
 
@@ -112,34 +166,57 @@ Todos os endpoints de listagem retornam o envelope:
 
 ## Endpoints
 
+### Auth (`/auth`)
+
+| Método   | Rota                                | Descrição                                      |
+|----------|-------------------------------------|-------------------------------------------------|
+| `POST`   | `/auth/login`                       | Login com e-mail e senha                        |
+| `POST`   | `/auth/register`                    | Registra usuário e retorna token                |
+| `POST`   | `/auth/refresh-token`               | Renova token de acesso                          |
+| `POST`   | `/auth/logout`                      | Revoga refresh token                            |
+| `POST`   | `/auth/redefinir-senha`             | Solicita redefinição de senha                   |
+| `GET`    | `/auth/me`                          | Perfil do usuário autenticado                   |
+| `GET`    | `/auth/login/google`                | Redireciona para Google OAuth                   |
+| `GET`    | `/auth/login/google/autorizado`     | Callback do Google OAuth                        |
+
 ### Eventos (`/eventos`)
 
-| Método   | Rota                     | Descrição                                         | Paginado |
-|----------|--------------------------|---------------------------------------------------|----------|
-| `GET`    | `/eventos`               | Lista todos os eventos (por criação, desc)        | Sim      |
-| `GET`    | `/eventos/destaques`     | Eventos publicados em destaque                    | Sim      |
-| `GET`    | `/eventos/proximos`      | Próximos eventos (por data de início, asc)        | Sim      |
-| `GET`    | `/eventos/{id}`          | Busca evento por id                               | Não      |
-| `POST`   | `/eventos`               | Cria evento (apenas autenticado)                  | Não      |
-| `PUT`    | `/eventos/{id}`          | Atualiza evento (apenas o organizador)            | Não      |
-| `DELETE` | `/eventos/{id}`          | Remove evento (apenas o organizador)              | Não      |
-| `POST`   | `/eventos/{id}/participar` | Participar do evento                            | Não      |
-| `DELETE` | `/eventos/{id}/participar` | Cancelar participação                           | Não      |
-| `GET`    | `/eventos/{id}/participantes` | Lista participantes                            | Não      |
+| Método   | Rota                           | Descrição                                         | Paginado |
+|----------|--------------------------------|---------------------------------------------------|----------|
+| `GET`    | `/eventos`                     | Lista todos os eventos (por criação, desc)        | Sim      |
+| `GET`    | `/eventos/proximos`            | Próximos eventos (por data de início, asc)        | Sim      |
+| `GET`    | `/eventos/{id}`                | Busca evento por id                               | Não      |
+| `POST`   | `/eventos`                     | Cria evento (apenas autenticado)                  | Não      |
+| `PUT`    | `/eventos/{id}`                | Atualiza evento (apenas o organizador)            | Não      |
+| `DELETE` | `/eventos/{id}`                | Remove evento (apenas o organizador)              | Não      |
+| `POST`   | `/eventos/{id}/participar`     | Participar do evento                              | Não      |
+| `DELETE` | `/eventos/{id}/participar`     | Cancelar participação                             | Não      |
+| `GET`    | `/eventos/{id}/participantes`  | Lista participantes                               | Sim      |
 
 ### Posts (`/post`)
 
-| Método   | Rota                       | Descrição                                      | Paginado |
-|----------|----------------------------|------------------------------------------------|----------|
-| `GET`    | `/post/feed/{usuarioId}`   | Feed de posts dos eventos do usuário           | Sim      |
-| `GET`    | `/post/eventos/{eventoId}` | Posts de um evento                             | Sim      |
-| `GET`    | `/post/usuarios/{usuarioId}` | Posts de um usuário                          | Sim      |
-| `POST`   | `/post`                    | Cria post (autor deve ser participante)        | Não      |
-| `GET`    | `/post/{id}`               | Busca post por id                              | Não      |
-| `PUT`    | `/post/{id}`               | Atualiza post (apenas o autor)                 | Não      |
-| `DELETE` | `/post/{id}`               | Remove post (apenas o autor)                   | Não      |
-| `POST`   | `/post/{id}/curtir`        | Curte um post                                  | Não      |
-| `DELETE` | `/post/{id}/curtir`        | Descurte um post                               | Não      |
+Os endpoints de criação e atualização de posts aceitam **multipart/form-data** para upload de mídia (imagens e vídeos).
+
+**Campos do multipart:**
+
+| Campo         | Tipo              | Obrigatório | Descrição                                      |
+|---------------|-------------------|-------------|-------------------------------------------------|
+| `texto`       | `String`          | Não         | Conteúdo textual do post                        |
+| `tipo`        | `String`          | Não         | Tipo do post                                    |
+| `visibilidade`| `String`          | Não         | Visibilidade do post                            |
+| `midias`      | `List<MultipartFile>` | Não     | Arquivos de imagem ou vídeo (max 50MB cada)     |
+
+| Método   | Rota                          | Descrição                                      | Paginado |
+|----------|-------------------------------|------------------------------------------------|----------|
+| `GET`    | `/post/feed/{usuarioId}`     | Feed de posts dos eventos do usuário           | Sim      |
+| `GET`    | `/post/eventos/{eventoId}`   | Posts de um evento                             | Sim      |
+| `GET`    | `/post/usuarios/{usuarioId}` | Posts de um usuário                            | Sim      |
+| `POST`   | `/post`                      | Cria post com texto e mídia (multipart)        | Não      |
+| `GET`    | `/post/{id}`                 | Busca post por id                              | Não      |
+| `PUT`    | `/post/{id}`                 | Atualiza post (multipart, apenas o autor)      | Não      |
+| `DELETE` | `/post/{id}`                 | Remove post (apenas o autor)                   | Não      |
+| `POST`   | `/post/{id}/curtir`          | Curte um post                                  | Não      |
+| `DELETE` | `/post/{id}/curtir`          | Descurte um post                               | Não      |
 
 ### Comentários (`/comentarios`)
 
@@ -178,9 +255,41 @@ Todos os endpoints de listagem retornam o envelope:
 
 ### Agenda (`/agenda`)
 
-| Método   | Rota             | Descrição                        |
-|----------|------------------|----------------------------------|
-| `GET`    | `/agenda?eventoId={id}` | Agenda de um evento (obrigatório `eventoId`) |
-| `POST`   | `/agenda`        | Cria item de agenda              |
-| `PUT`    | `/agenda/{id}`   | Atualiza item de agenda          |
-| `DELETE` | `/agenda/{id}`   | Remove item de agenda            |
+| Método   | Rota                      | Descrição                                  |
+|----------|---------------------------|--------------------------------------------|
+| `GET`    | `/agenda?eventoId={id}`   | Agenda de um evento (obrigatório `eventoId`) |
+| `POST`   | `/agenda`                 | Cria item de agenda                        |
+| `PUT`    | `/agenda/{id}`            | Atualiza item de agenda                    |
+| `DELETE` | `/agenda/{id}`            | Remove item de agenda                      |
+
+### Storage (`/storage`)
+
+| Método   | Rota              | Descrição                                             |
+|----------|-------------------|-------------------------------------------------------|
+| `POST`   | `/storage/upload` | Upload de imagem para S3 (multipart); atualiza foto de perfil do usuário automaticamente |
+
+---
+
+## Infraestrutura
+
+### AWS S3 + CloudFront
+
+Uploads de imagens (posts e fotos de perfil) são armazenados no S3 e servidos via CloudFront.
+
+Variáveis de ambiente:
+
+```
+AWS_ACCESS_KEY=...
+AWS_SECRET_KEY=...
+AWS_REGION=us-east-1
+AWS_BUCKET_NAME=s3-conectaai
+AWS_CLOUDFRONT_DOMAIN_NAME=d38sp318d0ruxp.cloudfront.net
+```
+
+### CORS
+
+A origem permitida para requests é configurável via variável de ambiente `CORS_ORIGINS` (padrão: `http://localhost:5173`).
+
+### Flyway
+
+Migrations do banco de dados estão em `src/main/resources/db/migration/` (18 versões: V1 até V18).

@@ -68,7 +68,8 @@ public class AuthService {
 
         usuarioRepository.save(usuario);
 
-        return gerarTokenResponse(usuario, response);
+        gerarRefreshToken(usuario, response);
+        return gerarAcessToken(usuario);
     }
 
     public TokenResponse login(LoginRequest request, HttpServletResponse response) {
@@ -79,7 +80,8 @@ public class AuthService {
         usuario.setUltimoLogin(LocalDateTime.now());
         usuarioRepository.save(usuario);
 
-        return gerarTokenResponse(usuario, response);
+        gerarRefreshToken(usuario, response);
+        return gerarAcessToken(usuario);
     }
 
     public TokenResponse refreshToken(String refreshTokenValue, HttpServletResponse response) {
@@ -97,7 +99,7 @@ public class AuthService {
         refreshToken.setRevogado(true);
         refreshTokenRepository.save(refreshToken);
 
-        return gerarTokenResponse(refreshToken.getUsuario(), response);
+        return gerarAcessToken(refreshToken.getUsuario());
     }
 
     public void logout(String refreshTokenValue, HttpServletResponse response) {
@@ -129,14 +131,16 @@ public class AuthService {
             Usuario usuario = usuarioExistente.get();
             var authToken = new UsernamePasswordAuthenticationToken(googleUserInfoDTO.email(), null, usuario.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authToken);
-            return gerarTokenResponse(usuario, response);
+            gerarRefreshToken(usuario, response);
+            return gerarAcessToken(usuario);
         }
 
         Usuario usuario = usuarioService.criarUsuarioGoogle(googleUserInfoDTO.providerId(), googleUserInfoDTO.email());
         var authToken = new UsernamePasswordAuthenticationToken(googleUserInfoDTO.email(), null, usuario.getAuthorities());
         var authentication = authenticationManager.authenticate(authToken);
         usuario = (Usuario) authentication.getPrincipal();
-        return gerarTokenResponse(usuario, response);
+        gerarRefreshToken(usuario, response);
+        return gerarAcessToken(usuario);
     }
 
     private void revokeAllTokens(UUID usuarioId) {
@@ -145,9 +149,13 @@ public class AuthService {
         refreshTokenRepository.saveAll(tokens);
     }
 
-    private TokenResponse gerarTokenResponse(Usuario usuario, HttpServletResponse response) {
+    private TokenResponse gerarAcessToken(Usuario usuario) {
         String accessToken = tokenService.gerarToken(usuario);
 
+        return new TokenResponse(accessToken);
+    }
+
+    private void gerarRefreshToken(Usuario usuario, HttpServletResponse response) {
         RefreshToken refreshToken = RefreshToken.builder()
                 .usuario(usuario)
                 .token(UUID.randomUUID().toString())
@@ -157,8 +165,6 @@ public class AuthService {
         refreshTokenRepository.save(refreshToken);
 
         adicionarCookie(response, refreshToken.getToken());
-
-        return new TokenResponse(accessToken);
     }
 
     private void adicionarCookie(HttpServletResponse response, String valor) {

@@ -149,7 +149,7 @@ Todos os endpoints de listagem retornam o envelope:
 2. **Próximas páginas** — copie os campos de `nextCursor` para os query params:
 
    ```http
-   GET /eventos?limite=5&cursorId=3d7c84da-b7c4-4c27-976f-70e5f197db43&cursorData=2026-08-15T13%3A48%3A38
+   GET /eventos?limite=5&cursorId=3d7c84da-b7c4-4c27-976f-70e5f197db43
    Authorization: Bearer <token>
    ```
 
